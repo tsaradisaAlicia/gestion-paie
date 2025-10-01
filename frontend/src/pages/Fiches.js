@@ -140,23 +140,33 @@ function Fiches() {
 
  const handleChange = (e) => {
   const { name, value } = e.target;
-  
-  setNewFiche((prevFiche) => {
-    // 1. Mettre à jour l'état avec la nouvelle valeur
-    const updatedFiche = { ...prevFiche, [name]: value };
 
-    // 2. Déclencher le calcul si un champ pertinent est modifié
+  setNewFiche((prevFiche) => {
+    let updatedFiche = { ...prevFiche, [name]: value }; // ← let au lieu de const
+
+    // Remplissage automatique si le champ modifié est "matricule"
+    if (name === "matricule") {
+      const ficheExistante = fiches.find((f) => f.matricule === value);
+      if (ficheExistante) {
+        updatedFiche = {
+          ...updatedFiche,
+          nom: ficheExistante.nom,
+          prenom: ficheExistante.prenom,
+          poste: ficheExistante.poste,
+          cnaps_num: ficheExistante.cnaps_num,
+          classe: ficheExistante.classe
+        };
+      }
+    }
+
     const champsAcalculer = [
       "salaire_base", "prime", "majoration", "allocation_conge", 
       "hs_imposable", "autre", "nb_enf", "hs_exo_irsa","avance15", "avance_speciale", "cantine"
     ];
-    
     if (champsAcalculer.includes(name)) {
-      // Appeler la fonction de calcul avec les données à jour
       return calculerFiche(updatedFiche);
     }
 
-    // Sinon, juste retourner la fiche mise à jour
     return updatedFiche;
   });
 };

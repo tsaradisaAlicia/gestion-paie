@@ -15,7 +15,7 @@ function Login() {
     e.preventDefault();
 
     // 🚀 Simulation de login : matricule = "admin", motDePasse = "1234"
-    if (matricule === "admin" && motDePasse === "1234") {
+    if (matricule === "136" && motDePasse === "noelisoa51") {
       setErreur("");
       navigate("/accueil"); // ✅ redirection
     } else {
