@@ -39,6 +39,7 @@ app.use(express.json());
       nom TEXT,
       prenom TEXT,
       mois TEXT,
+      nb_conge INTEGER DEFAULT 0,
       salaire_base REAL,
       taux_horaire REAL,
       heures REAL,
@@ -159,7 +160,7 @@ app.post("/fiches", async (req, res) => {
       allocation_conge, preavis, prime, fm, hs_exo_irsa, hs_imposable, majoration, 
       salaire_brut_total, salaire_brut_imposable, cnaps, ostie, nb_enf, irsa, avance15, 
       avance_speciale, autre, cantine, reglement, salaire_net, date_paiement, mode_paiement, 
-      periode_debut, periode_fin, poste, cnaps_num 
+      periode_debut, periode_fin, poste, cnaps_num, nb_conge
     } = req.body; 
 
       // Correction ici 
@@ -169,15 +170,15 @@ app.post("/fiches", async (req, res) => {
         allocation_conge, preavis, prime, fm, hs_exo_irsa, hs_imposable, majoration, 
         salaire_brut_total, salaire_brut_imposable, cnaps, ostie, nb_enf, irsa, avance15, 
         avance_speciale, autre, cantine, reglement, salaire_net, date_paiement, mode_paiement, 
-        periode_debut, periode_fin, poste, cnaps_num
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        periode_debut, periode_fin, poste, cnaps_num, nb_conge
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [ 
         // La liste des valeurs contient 34 éléments pour 34 colonnes 
         matricule, classe, nom, prenom, mois, salaire_base, taux_horaire, heures, nbr_enfant, 
         allocation_conge, preavis, prime, fm, hs_exo_irsa, hs_imposable, majoration, 
         salaire_brut_total, salaire_brut_imposable, cnaps, ostie, nb_enf, irsa, avance15, 
         avance_speciale, autre, cantine, reglement, salaire_net, date_paiement, mode_paiement, 
-        periode_debut, periode_fin, poste, cnaps_num, 
+        periode_debut, periode_fin, poste, cnaps_num, nb_conge 
       ] 
     ); 
     res.json({ message: "Fiche ajoutée avec succès", id: result.lastID }); 
@@ -206,7 +207,7 @@ app.post("/fiches", async (req, res) => {
         allocation_conge, preavis, prime, fm, hs_exo_irsa, hs_imposable, majoration,
         salaire_brut_total, salaire_brut_imposable, cnaps, ostie, nb_enf, irsa, avance15,
         avance_speciale, autre, cantine, reglement, salaire_net, date_paiement, mode_paiement,
-        periode_debut, periode_fin, poste, cnaps_num
+        periode_debut, periode_fin, poste, cnaps_num, nb_conge
       } = req.body;
       await db.run(
         `UPDATE fiches
@@ -216,7 +217,7 @@ app.post("/fiches", async (req, res) => {
         salaire_brut_imposable=?, cnaps=?, ostie=?, nb_enf=?, irsa=?, avance15=?,
         avance_speciale=?, autre=?, cantine=?, reglement=?, salaire_net=?,
         date_paiement=?, mode_paiement=?,
-        periode_debut=?, periode_fin=?, poste=?, cnaps_num=?
+        periode_debut=?, periode_fin=?, poste=?, cnaps_num=?, nb_conge=?
         WHERE id=?`,
         [
           matricule, classe, nom, prenom, mois, salaire_base,
@@ -225,7 +226,7 @@ app.post("/fiches", async (req, res) => {
           salaire_brut_imposable, cnaps, ostie, nb_enf, irsa, avance15,
           avance_speciale, autre, cantine, reglement, salaire_net,
           date_paiement, mode_paiement,
-          periode_debut, periode_fin, poste, cnaps_num,
+          periode_debut, periode_fin, poste, cnaps_num, nb_conge,
           id,
         ]
       );

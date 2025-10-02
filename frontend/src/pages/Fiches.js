@@ -35,6 +35,8 @@ const calculerFiche = (data) => {
   const avance_speciale = Number(data.avance_speciale) || 0;
   const cantine = Number(data.cantine) || 0;
   const nb_enf = Number(data.nb_enf) || 0; 
+  // ⬅️ AJOUTEZ CETTE LIGNE
+  const nb_conge = Number(data.nb_conge) || 0; 
 
   // Calcul du Salaire brut total
   const salaire_brut_total =
@@ -111,6 +113,9 @@ function Fiches() {
     nom: "",
     prenom: "",
     mois: "",
+    annee: new Date().getFullYear(), // Par défaut année actuelle
+    periode_debut: "",   // 🔹 ajouté
+    periode_fin: "",   // 🔹 ajouté
     salaire_base: "",
     taux_horaire: "",
     heures: "",
@@ -136,32 +141,79 @@ function Fiches() {
     salaire_net: "",
     date_paiement: "",
     mode_paiement: "",
+     nb_conge: "0",
   });
 
- const handleChange = (e) => {
+const handleChange = (e) => {
   const { name, value } = e.target;
 
   setNewFiche((prevFiche) => {
-    let updatedFiche = { ...prevFiche, [name]: value }; // ← let au lieu de const
+    let updatedFiche = { ...prevFiche, [name]: value };
 
-    // Remplissage automatique si le champ modifié est "matricule"
+     // Remplissage automatique si le champ modifié est "matricule"
     if (name === "matricule") {
       const ficheExistante = fiches.find((f) => f.matricule === value);
       if (ficheExistante) {
         updatedFiche = {
           ...updatedFiche,
-          nom: ficheExistante.nom,
-          prenom: ficheExistante.prenom,
-          poste: ficheExistante.poste,
-          cnaps_num: ficheExistante.cnaps_num,
-          classe: ficheExistante.classe
+          // 1. Informations d'identification (copiées)
+          nom: ficheExistante.nom || '',
+          prenom: ficheExistante.prenom || '',
+          poste: ficheExistante.poste || '',
+          cnaps_num: ficheExistante.cnaps_num || '',
+          classe: ficheExistante.classe || '', 
+          // --- Champs Financiers/Base (à copier) ---
+          salaire_base: ficheExistante.salaire_base || 0,
+          taux_horaire: ficheExistante.taux_horaire || 0,
+          nbr_enfant: ficheExistante.nbr_enfant || 0,
+          // 3. Champs mensuels VOLATILS (remis à zéro pour une nouvelle fiche, ne pas copier les montants du mois précédent !)
+          heures: 0,
+          prime: 0,
+          fm: 0,
+          majoration: 0,
+          avance15: 0,
+          avance_speciale: 0,
+          cantine: 0,
+          autre: 0,
+          nb_conge: 0,
         };
       }
     }
 
+    //REMPLISSAGE AUTOMATIQUE DES DATES SI MOIS OU ANNÉE MODIFIÉS
+    if (name === "mois" || name === "annee") {
+      const mois = name === "mois" ? value : prevFiche.mois;
+      const annee = name === "annee" ? value : prevFiche.annee;
+
+      if (mois && annee) {
+        // Date de paiement
+        updatedFiche.date_paiement = `${annee}-${mois}-28`;
+
+        // Calcul du mois précédent
+        let moisNum = parseInt(mois, 10);
+        let anneeDebut = parseInt(annee, 10);
+        let moisPrecedent = moisNum - 1;
+
+        if (moisPrecedent === 0) {
+          moisPrecedent = 12;
+          anneeDebut = anneeDebut - 1;
+        }
+
+        // Ajout d’un zéro devant si mois < 10
+        const moisPrecedentStr = moisPrecedent.toString().padStart(2, "0");
+
+        // Période du = 28 du mois précédent
+        updatedFiche.periode_debut = `${anneeDebut}-${moisPrecedentStr}-28`;
+
+        // Période au = même que date paiement
+        updatedFiche.periode_fin = updatedFiche.date_paiement;
+      }
+    }
+
+    // 🔹 Calcul automatique fiche si champs modifiés
     const champsAcalculer = [
       "salaire_base", "prime", "majoration", "allocation_conge", 
-      "hs_imposable", "autre", "nb_enf", "hs_exo_irsa","avance15", "avance_speciale", "cantine"
+      "hs_imposable", "autre", "nb_enf", "hs_exo_irsa","avance15", "avance_speciale", "cantine", "nb_conge"
     ];
     if (champsAcalculer.includes(name)) {
       return calculerFiche(updatedFiche);
@@ -170,6 +222,9 @@ function Fiches() {
     return updatedFiche;
   });
 };
+
+
+
   const handleChangeMois = (matricule, mois) => {
     setMoisSelectionnes((prev) => ({
       ...prev,
@@ -197,14 +252,18 @@ function Fiches() {
         setFicheEnCours(null);
       } else {
         const res = await axios.post("http://localhost:5000/fiches", newFiche);
+        // ⬅️ CORRECTION 1: CRÉER UN OBJET DE FICHE COMPLET AVEC L'ID REÇU DU SERVEUR
+        const ficheAvecId = { ...newFiche, id: res.data.id }; 
         setFiches((prev) => {
           const index = prev.findIndex((f) => f.matricule === newFiche.matricule);
           if (index !== -1) {
             const updated = [...prev];
-            updated[index].moisData[newFiche.mois] = { ...newFiche, id: res.data.id };
+            // Utiliser l'objet complet avec l'ID
+            updated[index].moisData[newFiche.mois] = ficheAvecId; 
             return updated;
           }
-          return [...prev, { ...newFiche, id: res.data.id, moisData: { [newFiche.mois]: newFiche } }];
+         // Ajouter la nouvelle fiche complète avec l'ID
+          return [...prev, { ...newFiche, id: res.data.id, moisData: { [newFiche.mois]: ficheAvecId } }];
         });
         alert("Fiche ajoutée avec succès !");
       }
@@ -215,6 +274,7 @@ function Fiches() {
         nom: "",
         prenom: "",
         mois: "",
+        annee: new Date().getFullYear(),
         salaire_base: "",
         taux_horaire: "",
         heures: "",
@@ -240,6 +300,7 @@ function Fiches() {
         salaire_net: "",
         date_paiement: "",
         mode_paiement: "",
+        nb_conge: "0",
       });
       setShowForm(false);
     } catch (err) {
@@ -290,10 +351,21 @@ function Fiches() {
   };
 
   const modifierFiche = (fiche) => {
-    setFicheEnCours(fiche);
-    setNewFiche(fiche);
-    setShowForm(true);
-  };
+     setFicheEnCours(fiche);
+
+    // ⬅️ CORRECTION 3: EXTRAIRE L'ANNÉE À PARTIR DE LA DATE DE PAIEMENT
+     const anneeDeFiche = fiche.date_paiement 
+      ? fiche.date_paiement.substring(0, 4) 
+      : new Date().getFullYear().toString();
+
+    // ⬅️ CORRECTION 4: CHARGER TOUS LES CHAMPS DANS NEWFICHE
+     setNewFiche({
+       ...fiche,
+      annee: anneeDeFiche, // Charge l'année pour le champ du formulaire
+       nb_conge: fiche.nb_conge || "0", // Assure qu'il y a toujours une valeur par défaut
+    });
+     setShowForm(true);
+};
 
 // Function to generate PDF of a fiche
 const exporterPDF = async (fiche) => {
@@ -325,7 +397,100 @@ const exporterPDF = async (fiche) => {
       .includes(search.toLowerCase())
   );
 
+  // Fonction pour convertir le numéro du mois en nom de mois en français
+const getMonthName = (monthNumber) => {
+  const months = {
+    "01": "Janvier",
+    "02": "Février",
+    "03": "Mars",
+    "04": "Avril",
+    "05": "Mai",
+    "06": "Juin",
+    "07": "Juillet",
+    "08": "Août",
+    "09": "Septembre",
+    "10": "Octobre",
+    "11": "Novembre",
+    "12": "Décembre",
+  };
+  return months[monthNumber] || monthNumber; // Retourne le nom, ou le numéro si non trouvé
+};
+/*
+// Fonction utilitaire pour trouver la dernière fiche pour un matricule donné
+    const getLatestFicheData = (targetMatricule) => {
+        let latestFiche = null;
+        let latestTimestamp = 0;
 
+        // Parcourir toutes les données du personnel dans l'état 'fiches'
+        const personnel = fiches.find(p => p.matricule === targetMatricule);
+
+        if (!personnel || !personnel.moisData) return null;
+
+        // Parcourir tous les mois de fiches pour ce personnel
+        for (const mois in personnel.moisData) {
+            const currentFiche = personnel.moisData[mois];
+
+            // Utiliser date_paiement pour déterminer la date la plus récente
+            if (currentFiche.date_paiement) {
+                const currentTimestamp = new Date(currentFiche.date_paiement).getTime();
+                
+                if (currentTimestamp > latestTimestamp) {
+                    latestTimestamp = currentTimestamp;
+                    latestFiche = currentFiche;
+                }
+            }
+        }
+
+        return latestFiche;
+    };
+
+// 🌟 🌟 Logique d'Autocomplétion lors de la saisie du matricule 🌟 🌟
+    useEffect(() => {
+        const matricule = newFiche.matricule;
+
+        // ⚠️ Déclencher l'autocomplétion SEULEMENT en mode "Ajout" (ficheEnCours est null)
+        if (matricule && !ficheEnCours) {
+            
+            // 1. Récupérer la dernière fiche
+            const latestFiche = getLatestFicheData(matricule);
+            
+            if (latestFiche) {
+                setNewFiche(prev => ({
+                    ...prev,
+                    
+                    // --- Champs d'identité (issus de la dernière fiche) ---
+                    classe: latestFiche.classe || prev.classe,
+                    nom: latestFiche.nom || prev.nom,
+                    prenom: latestFiche.prenom || prev.prenom,
+                    poste: latestFiche.poste || prev.poste,
+                    cnaps_num: latestFiche.cnaps_num || prev.cnaps_num,
+
+                    // --- Champs Financiers/Base (à copier) ---
+                    salaire_base: latestFiche.salaire_base || prev.salaire_base,
+                    taux_horaire: latestFiche.taux_horaire || prev.taux_horaire,
+                    heures: latestFiche.heures || prev.heures,
+                    nbr_enfant: latestFiche.nbr_enfant || prev.nbr_enfant,
+                    nb_enf: latestFiche.nb_enf || prev.nb_enf, // Nombre enfants pour déduction
+                    
+                    // --- Primes/Avances/Congés (à copier) ---
+                    prime: latestFiche.prime || "0",
+                    fm: latestFiche.fm || "0",
+                    majoration: latestFiche.majoration || "0",
+                    avance15: latestFiche.avance15 || "0",
+                    avance_speciale: latestFiche.avance_speciale || "0",
+                    cantine: latestFiche.cantine || "0",
+                    autre: latestFiche.autre || "0",
+                    
+                    // ⬅️ NB CONGÉ EST COPIÉ AUTOMATIQUEMENT
+                    nb_conge: latestFiche.nb_conge || "0", 
+
+                    // Les champs mois, annee, date_paiement, mode_paiement, sont laissés tels quels pour la nouvelle fiche
+                }));
+            }
+        }
+    }, [newFiche.matricule, ficheEnCours, fiches]); // Dépendances
+
+*/
   return (
     <div className="bg-white p-6 rounded-lg shadow">
       <div className="flex justify-between items-center mb-4">
@@ -391,8 +556,43 @@ const exporterPDF = async (fiche) => {
             </div>
             <div>
               <label htmlFor="mois" className="block text-sm font-medium text-gray-700">Mois</label>
-              <input id="mois" type="month" name="mois" value={newFiche.mois} onChange={handleChange} className="mt-1 block w-full border border-gray-300 p-2 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500" required />
+              <select
+                id="mois"
+                name="mois"
+                value={newFiche.mois}
+                onChange={handleChange}
+                className="mt-1 block w-full border border-gray-300 p-2 rounded-md shadow-sm"
+                required
+              >
+                <option value="">-- Sélectionner --</option>
+                <option value="01">Janvier</option>
+                <option value="02">Février</option>
+                <option value="03">Mars</option>
+                <option value="04">Avril</option>
+                <option value="05">Mai</option>
+                <option value="06">Juin</option>
+                <option value="07">Juillet</option>
+                <option value="08">Août</option>
+                <option value="09">Septembre</option>
+                <option value="10">Octobre</option>
+                <option value="11">Novembre</option>
+                <option value="12">Décembre</option>
+              </select>
             </div>
+
+            <div>
+              <label htmlFor="annee" className="block text-sm font-medium text-gray-700">Année</label>
+              <input
+                id="annee"
+                type="number"
+                name="annee"
+                value={newFiche.annee}
+                onChange={handleChange}
+                className="mt-1 block w-full border border-gray-300 p-2 rounded-md shadow-sm"
+                required
+              />
+            </div>
+
             <div>
               <label htmlFor="date_paiement" className="block text-sm font-medium text-gray-700">Date de paiement</label>
               <input id="date_paiement" type="date" name="date_paiement" value={newFiche.date_paiement} onChange={handleChange} className="mt-1 block w-full border border-gray-300 p-2 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500" />
@@ -444,6 +644,11 @@ const exporterPDF = async (fiche) => {
               <label htmlFor="preavis" className="block text-sm font-medium text-gray-700">Préavis</label>
               <input id="preavis" type="number" name="preavis" value={newFiche.preavis} onChange={handleChange} className="mt-1 block w-40 border border-gray-300 p-2 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500" />
             </div>
+              {/* ⬅️ AJOUT DU CHAMP NOMBRE DE CONGÉ */}
+            <div>
+              <label htmlFor="nb_conge" className="block text-sm font-medium text-gray-700">Nb. Congé (jours)</label>
+              <input id="nb_conge" type="number" name="nb_conge" value={newFiche.nb_conge} onChange={handleChange} className="mt-1 block w-40 border border-gray-300 p-2 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500" min="0"/>
+            </div>
           </div>
         </fieldset>
       </div>
@@ -615,7 +820,7 @@ const exporterPDF = async (fiche) => {
                     <td className="border px-2 py-1">
                       <select value={moisChoisi} onChange={(e) => handleChangeMois(fiche.matricule, e.target.value)} className="border p-1 rounded">
                         {Object.keys(fiche.moisData).map((m) => (
-                          <option key={m} value={m}>{m}</option>
+                          <option key={m} value={m}>{getMonthName(m)}</option>
                         ))}
                       </select>
                     </td>
