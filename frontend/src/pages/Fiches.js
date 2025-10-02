@@ -3,494 +3,428 @@ import { useEffect, useState } from "react";
 import { FaPlus, FaEdit, FaTrash, FaDownload, FaSearch } from "react-icons/fa";
 import axios from "axios";
 
+// 💡 NOUVELLE URL DE L'API DE RENDER
+// VEUILLEZ REMPLACER CETTE ADRESSE SI VOTRE DOMAINE RENDER CHANGE !
+const RENDER_API_BASE_URL = "https://gestion-paie-b7w6.onrender.com";
+
 // Fonction pour formater un nombre avec un espace comme séparateur de milliers et une virgule pour les décimales
 const formatNumber = (number) => {
-  // Gérer les cas où le nombre est null, undefined ou une chaîne vide
-  if (number === null || number === undefined || number === "") {
-    return "0,00"; 
-  }
-  // Tenter de convertir la valeur en nombre si ce n'est pas déjà le cas
-  const num = typeof number === 'string' ? parseFloat(number.replace(',', '.')) : number;
-  if (isNaN(num)) {
-    return "0,00";
-  }
-  // Utiliser Intl.NumberFormat pour un formatage international correct
-  return new Intl.NumberFormat("fr-FR", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(num);
+  // Gérer les cas où le nombre est null, undefined ou une chaîne vide
+  if (number === null || number === undefined || number === "") {
+    return "0,00"; 
+  }
+  // Tenter de convertir la valeur en nombre si ce n'est pas déjà le cas
+  const num = typeof number === 'string' ? parseFloat(number.replace(',', '.')) : number;
+  if (isNaN(num)) {
+    return "0,00";
+  }
+  // Utiliser Intl.NumberFormat pour un formatage international correct
+  return new Intl.NumberFormat("fr-FR", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(num);
 };
 
 // Fonction de calcul de la fiche de paie
 const calculerFiche = (data) => {
-  // Convertir les chaînes de caractères en nombres
-  const salaire_base = Number(data.salaire_base) || 0;
-  const prime = Number(data.prime) || 0;
-  const majoration = Number(data.majoration) || 0;
-  const allocation_conge = Number(data.allocation_conge) || 0;
-  const hs_imposable = Number(data.hs_imposable) || 0;
-  const hs_exo_irsa = Number(data.hs_exo_irsa) || 0; 
-  const autre = Number(data.autre) || 0;
-  const avance15 = Number(data.avance15) || 0;
-  const avance_speciale = Number(data.avance_speciale) || 0;
-  const cantine = Number(data.cantine) || 0;
-  const nb_enf = Number(data.nb_enf) || 0; 
-  // ⬅️ AJOUTEZ CETTE LIGNE
-  const nb_conge = Number(data.nb_conge) || 0; 
+  // Convertir les chaînes de caractères en nombres
+  const salaire_base = Number(data.salaire_base) || 0;
+  const prime = Number(data.prime) || 0;
+  const majoration = Number(data.majoration) || 0;
+  const allocation_conge = Number(data.allocation_conge) || 0;
+  const hs_imposable = Number(data.hs_imposable) || 0;
+  const hs_exo_irsa = Number(data.hs_exo_irsa) || 0; 
+  const autre = Number(data.autre) || 0;
+  const avance15 = Number(data.avance15) || 0;
+  const avance_speciale = Number(data.avance_speciale) || 0;
+  const cantine = Number(data.cantine) || 0;
+  const nb_enf = Number(data.nb_enf) || 0; 
+  // ⬅️ AJOUTEZ CETTE LIGNE
+  const nb_conge = Number(data.nb_conge) || 0; 
 
-  // Calcul du Salaire brut total
-  const salaire_brut_total =
-    salaire_base + prime + majoration + allocation_conge + hs_imposable + autre;
+  // Calcul du Salaire brut total
+  const salaire_brut_total =
+    salaire_base + prime + majoration + allocation_conge + hs_imposable + autre;
 
-  // Taux de cotisation
-  const taux_cnaps = 0.01;
-  const taux_ostie = 0.01;
+  // Taux de cotisation
+  const taux_cnaps = 0.01;
+  const taux_ostie = 0.01;
 
-  // Calcul des retenues
-  const cnaps = salaire_brut_total * taux_cnaps;
-  const ostie = salaire_brut_total * taux_ostie;
+  // Calcul des retenues
+  const cnaps = salaire_brut_total * taux_cnaps;
+  const ostie = salaire_brut_total * taux_ostie;
 
-  // Déterminer la base de calcul de l'IRSA
-  const base_imposable = salaire_brut_total - cnaps - ostie - hs_exo_irsa;
+  // Déterminer la base de calcul de l'IRSA
+  const base_imposable = salaire_brut_total - cnaps - ostie - hs_exo_irsa;
 
-  // Arrondir à la centaine d'Ariary inférieure
-  const base_irsa_arrondie = Math.floor(base_imposable / 100) * 100;
+  // Arrondir à la centaine d'Ariary inférieure
+  const base_irsa_arrondie = Math.floor(base_imposable / 100) * 100;
 
-  // Calcul de l'impôt par tranche selon votre barème
- let irsa_calcule = 0;
+  // Calcul de l'impôt par tranche selon votre barème
+ let irsa_calcule = 0;
 if (base_irsa_arrondie > 600000) {
-  // On calcule l'impôt sur la portion au-dessus de 600 000 Ar,
-  // puis on ajoute le total des impôts des tranches précédentes, soit 27 500 Ar.
-  irsa_calcule = (base_irsa_arrondie - 600000) * 0.20 + 27500;
+  // On calcule l'impôt sur la portion au-dessus de 600 000 Ar,
+  // puis on ajoute le total des impôts des tranches précédentes, soit 27 500 Ar.
+  irsa_calcule = (base_irsa_arrondie - 600000) * 0.20 + 27500;
 } else if (base_irsa_arrondie > 500000) {
-  // Impôt sur la portion au-dessus de 500 000 Ar,
-  // plus le total des impôts des tranches précédentes (10 000 + 2 500)
-  irsa_calcule = (base_irsa_arrondie - 500000) * 0.15 + 12500;
+  // Impôt sur la portion au-dessus de 500 000 Ar,
+  // plus le total des impôts des tranches précédentes (10 000 + 2 500)
+  irsa_calcule = (base_irsa_arrondie - 500000) * 0.15 + 12500;
 } else if (base_irsa_arrondie > 400000) {
-  // Impôt sur la portion au-dessus de 400 000 Ar,
-  // plus l'impôt de la tranche précédente (2 500)
-  irsa_calcule = (base_irsa_arrondie - 400000) * 0.10 + 2500;
+  // Impôt sur la portion au-dessus de 400 000 Ar,
+  // plus l'impôt de la tranche précédente (2 500)
+  irsa_calcule = (base_irsa_arrondie - 400000) * 0.10 + 2500;
 } else if (base_irsa_arrondie > 350000) {
-  // Impôt sur la portion au-dessus de 350 000 Ar
-  irsa_calcule = (base_irsa_arrondie - 350000) * 0.05;
+  // Impôt sur la portion au-dessus de 350 000 Ar
+  irsa_calcule = (base_irsa_arrondie - 350000) * 0.05;
 }
 
-  // Réduction pour chaque personne à charge
-  const reduction_enfant = nb_enf * 2000;
-  let irsa_apres_reduction = Math.max(0, irsa_calcule - reduction_enfant);
+  // Réduction pour chaque personne à charge
+  const reduction_enfant = nb_enf * 2000;
+  let irsa_apres_reduction = Math.max(0, irsa_calcule - reduction_enfant);
 
-  // Application du minimum de l'IRSA
-  const irsa_final = Math.max(3000, irsa_apres_reduction);
+  // Application du minimum de l'IRSA
+  const irsa_final = Math.max(3000, irsa_apres_reduction);
 
-  // Total des retenues
-  const total_retenues = cnaps + ostie + irsa_final + avance15 + avance_speciale + cantine;
+  // Total des retenues
+  const total_retenues = cnaps + ostie + irsa_final + avance15 + avance_speciale + cantine;
 
-  // Calcul du Salaire net
-  const salaire_net = salaire_brut_total - total_retenues;
+  // Calcul du Salaire net
+  const salaire_net = salaire_brut_total - total_retenues;
 
-  return {
-    ...data,
-    salaire_brut_total: salaire_brut_total.toFixed(2),
-    salaire_brut_imposable: base_irsa_arrondie.toFixed(2), 
-    cnaps: cnaps.toFixed(2),
-    ostie: ostie.toFixed(2),
-    irsa: irsa_final.toFixed(2),
-    salaire_net: salaire_net.toFixed(2),
-  };
+  return {
+    ...data,
+    salaire_brut_total: salaire_brut_total.toFixed(2),
+    salaire_brut_imposable: base_irsa_arrondie.toFixed(2), 
+    cnaps: cnaps.toFixed(2),
+    ostie: ostie.toFixed(2),
+    irsa: irsa_final.toFixed(2),
+    salaire_net: salaire_net.toFixed(2),
+  };
 };
 
 
 function Fiches() {
-  const [fiches, setFiches] = useState([]);
-  const [ficheEnCours, setFicheEnCours] = useState(null);
-  const [moisSelectionnes, setMoisSelectionnes] = useState({});
-  const [showForm, setShowForm] = useState(false);
-  const [search, setSearch] = useState("");
+  const [fiches, setFiches] = useState([]);
+  const [ficheEnCours, setFicheEnCours] = useState(null);
+  const [moisSelectionnes, setMoisSelectionnes] = useState({});
+  const [showForm, setShowForm] = useState(false);
+  const [search, setSearch] = useState("");
 
-  const [newFiche, setNewFiche] = useState({
-    matricule: "",
-    classe: "",
-    nom: "",
-    prenom: "",
-    mois: "",
-    annee: new Date().getFullYear(), // Par défaut année actuelle
-    periode_debut: "",   // 🔹 ajouté
-    periode_fin: "",   // 🔹 ajouté
-    salaire_base: "",
-    taux_horaire: "",
-    heures: "",
-    nbr_enfant: "",
-    allocation_conge: "",
-    preavis: "",
-    prime: "",
-    fm: "",
-    hs_exo_irsa: "",
-    hs_imposable: "",
-    majoration: "",
-    salaire_brut_total: "",
-    salaire_brut_imposable: "",
-    cnaps: "",
-    ostie: "",
-    nb_enf: "",
-    irsa: "",
-    avance15: "",
-    avance_speciale: "",
-    autre: "",
-    cantine: "",
-    reglement: "",
-    salaire_net: "",
-    date_paiement: "",
-    mode_paiement: "",
-     nb_conge: "0",
-  });
+  const [newFiche, setNewFiche] = useState({
+    matricule: "",
+    classe: "",
+    nom: "",
+    prenom: "",
+    mois: "",
+    annee: new Date().getFullYear(), // Par défaut année actuelle
+    periode_debut: "",   // 🔹 ajouté
+    periode_fin: "",   // 🔹 ajouté
+    salaire_base: "",
+    taux_horaire: "",
+    heures: "",
+    nbr_enfant: "",
+    allocation_conge: "",
+    preavis: "",
+    prime: "",
+    fm: "",
+    hs_exo_irsa: "",
+    hs_imposable: "",
+    majoration: "",
+    salaire_brut_total: "",
+    salaire_brut_imposable: "",
+    cnaps: "",
+    ostie: "",
+    nb_enf: "",
+    irsa: "",
+    avance15: "",
+    avance_speciale: "",
+    autre: "",
+    cantine: "",
+    reglement: "",
+    salaire_net: "",
+    date_paiement: "",
+    mode_paiement: "",
+     nb_conge: "0",
+  });
 
 const handleChange = (e) => {
-  const { name, value } = e.target;
+  const { name, value } = e.target;
 
-  setNewFiche((prevFiche) => {
-    let updatedFiche = { ...prevFiche, [name]: value };
+  setNewFiche((prevFiche) => {
+    let updatedFiche = { ...prevFiche, [name]: value };
 
-     // Remplissage automatique si le champ modifié est "matricule"
-    if (name === "matricule") {
-      const ficheExistante = fiches.find((f) => f.matricule === value);
-      if (ficheExistante) {
-        updatedFiche = {
-          ...updatedFiche,
-          // 1. Informations d'identification (copiées)
-          nom: ficheExistante.nom || '',
-          prenom: ficheExistante.prenom || '',
-          poste: ficheExistante.poste || '',
-          cnaps_num: ficheExistante.cnaps_num || '',
-          classe: ficheExistante.classe || '', 
-          // --- Champs Financiers/Base (à copier) ---
-          salaire_base: ficheExistante.salaire_base || 0,
-          taux_horaire: ficheExistante.taux_horaire || 0,
-          nbr_enfant: ficheExistante.nbr_enfant || 0,
-          // 3. Champs mensuels VOLATILS (remis à zéro pour une nouvelle fiche, ne pas copier les montants du mois précédent !)
-          heures: 0,
-          prime: 0,
-          fm: 0,
-          majoration: 0,
-          avance15: 0,
-          avance_speciale: 0,
-          cantine: 0,
-          autre: 0,
-          nb_conge: 0,
-        };
-      }
-    }
+     // Remplissage automatique si le champ modifié est "matricule"
+    if (name === "matricule") {
+      const ficheExistante = fiches.find((f) => f.matricule === value);
+      if (ficheExistante) {
+        updatedFiche = {
+          ...updatedFiche,
+          // 1. Informations d'identification (copiées)
+          nom: ficheExistante.nom || '',
+          prenom: ficheExistante.prenom || '',
+          poste: ficheExistante.poste || '',
+          cnaps_num: ficheExistante.cnaps_num || '',
+          classe: ficheExistante.classe || '', 
+          // --- Champs Financiers/Base (à copier) ---
+          salaire_base: ficheExistante.salaire_base || 0,
+          taux_horaire: ficheExistante.taux_horaire || 0,
+          nbr_enfant: ficheExistante.nbr_enfant || 0,
+          // 3. Champs mensuels VOLATILS (remis à zéro pour une nouvelle fiche, ne pas copier les montants du mois précédent !)
+          heures: 0,
+          prime: 0,
+          fm: 0,
+          majoration: 0,
+          avance15: 0,
+          avance_speciale: 0,
+          cantine: 0,
+          autre: 0,
+          nb_conge: 0,
+        };
+      }
+    }
 
-    //REMPLISSAGE AUTOMATIQUE DES DATES SI MOIS OU ANNÉE MODIFIÉS
-    if (name === "mois" || name === "annee") {
-      const mois = name === "mois" ? value : prevFiche.mois;
-      const annee = name === "annee" ? value : prevFiche.annee;
+    //REMPLISSAGE AUTOMATIQUE DES DATES SI MOIS OU ANNÉE MODIFIÉS
+    if (name === "mois" || name === "annee") {
+      const mois = name === "mois" ? value : prevFiche.mois;
+      const annee = name === "annee" ? value : prevFiche.annee;
 
-      if (mois && annee) {
-        // Date de paiement
-        updatedFiche.date_paiement = `${annee}-${mois}-28`;
+      if (mois && annee) {
+        // Date de paiement
+        updatedFiche.date_paiement = `${annee}-${mois}-28`;
 
-        // Calcul du mois précédent
-        let moisNum = parseInt(mois, 10);
-        let anneeDebut = parseInt(annee, 10);
-        let moisPrecedent = moisNum - 1;
+        // Calcul du mois précédent
+        let moisNum = parseInt(mois, 10);
+        let anneeDebut = parseInt(annee, 10);
+        let moisPrecedent = moisNum - 1;
 
-        if (moisPrecedent === 0) {
-          moisPrecedent = 12;
-          anneeDebut = anneeDebut - 1;
-        }
+        if (moisPrecedent === 0) {
+          moisPrecedent = 12;
+          anneeDebut = anneeDebut - 1;
+        }
 
-        // Ajout d’un zéro devant si mois < 10
-        const moisPrecedentStr = moisPrecedent.toString().padStart(2, "0");
+        // Ajout d’un zéro devant si mois < 10
+        const moisPrecedentStr = moisPrecedent.toString().padStart(2, "0");
 
-        // Période du = 28 du mois précédent
-        updatedFiche.periode_debut = `${anneeDebut}-${moisPrecedentStr}-28`;
+        // Période du = 28 du mois précédent
+        updatedFiche.periode_debut = `${anneeDebut}-${moisPrecedentStr}-28`;
 
-        // Période au = même que date paiement
-        updatedFiche.periode_fin = updatedFiche.date_paiement;
-      }
-    }
+        // Période au = même que date paiement
+        updatedFiche.periode_fin = updatedFiche.date_paiement;
+      }
+    }
 
-    // 🔹 Calcul automatique fiche si champs modifiés
-    const champsAcalculer = [
-      "salaire_base", "prime", "majoration", "allocation_conge", 
-      "hs_imposable", "autre", "nb_enf", "hs_exo_irsa","avance15", "avance_speciale", "cantine", "nb_conge"
-    ];
-    if (champsAcalculer.includes(name)) {
-      return calculerFiche(updatedFiche);
-    }
+    // 🔹 Calcul automatique fiche si champs modifiés
+    const champsAcalculer = [
+      "salaire_base", "prime", "majoration", "allocation_conge", 
+      "hs_imposable", "autre", "nb_enf", "hs_exo_irsa","avance15", "avance_speciale", "cantine", "nb_conge"
+    ];
+    if (champsAcalculer.includes(name)) {
+      return calculerFiche(updatedFiche);
+    }
 
-    return updatedFiche;
-  });
+    return updatedFiche;
+  });
 };
 
 
 
-  const handleChangeMois = (matricule, mois) => {
-    setMoisSelectionnes((prev) => ({
-      ...prev,
-      [matricule]: mois,
-    }));
-  };
+  const handleChangeMois = (matricule, mois) => {
+    setMoisSelectionnes((prev) => ({
+      ...prev,
+      [matricule]: mois,
+    }));
+  };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      if (ficheEnCours) {
-        await axios.put(`http://localhost:5000/fiches/${ficheEnCours.id}`, newFiche);
-        setFiches((prev) =>
-          prev.map((f) => {
-            if (f.matricule === newFiche.matricule) {
-              return {
-                ...f,
-                moisData: { ...f.moisData, [newFiche.mois]: newFiche },
-              };
-            }
-            return f;
-          })
-        );
-        alert("Fiche modifiée avec succès !");
-        setFicheEnCours(null);
-      } else {
-        const res = await axios.post("http://localhost:5000/fiches", newFiche);
-        // ⬅️ CORRECTION 1: CRÉER UN OBJET DE FICHE COMPLET AVEC L'ID REÇU DU SERVEUR
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      if (ficheEnCours) {
+        // 🛑 URL MISE À JOUR (PUT)
+        await axios.put(`${RENDER_API_BASE_URL}/fiches/${ficheEnCours.id}`, newFiche);
+        setFiches((prev) =>
+          prev.map((f) => {
+            if (f.matricule === newFiche.matricule) {
+              return {
+                ...f,
+                moisData: { ...f.moisData, [newFiche.mois]: newFiche },
+              };
+            }
+            return f;
+          })
+        );
+        alert("Fiche modifiée avec succès !"); // ⚠️ Utiliser un modal personnalisé au lieu d'alert
+        setFicheEnCours(null);
+      } else {
+        // 🛑 URL MISE À JOUR (POST)
+        const res = await axios.post(`${RENDER_API_BASE_URL}/fiches`, newFiche);
+        // ⬅️ CORRECTION 1: CRÉER UN OBJET DE FICHE COMPLET AVEC L'ID REÇU DU SERVEUR
         const ficheAvecId = { ...newFiche, id: res.data.id }; 
-        setFiches((prev) => {
-          const index = prev.findIndex((f) => f.matricule === newFiche.matricule);
-          if (index !== -1) {
-            const updated = [...prev];
-            // Utiliser l'objet complet avec l'ID
+        setFiches((prev) => {
+          const index = prev.findIndex((f) => f.matricule === newFiche.matricule);
+          if (index !== -1) {
+            const updated = [...prev];
+            // Utiliser l'objet complet avec l'ID
             updated[index].moisData[newFiche.mois] = ficheAvecId; 
-            return updated;
-          }
-         // Ajouter la nouvelle fiche complète avec l'ID
+            return updated;
+          }
+         // Ajouter la nouvelle fiche complète avec l'ID
           return [...prev, { ...newFiche, id: res.data.id, moisData: { [newFiche.mois]: ficheAvecId } }];
-        });
-        alert("Fiche ajoutée avec succès !");
-      }
+        });
+        alert("Fiche ajoutée avec succès !"); // ⚠️ Utiliser un modal personnalisé au lieu d'alert
+      }
 
-      setNewFiche({
-        matricule: "",
-        classe: "",
-        nom: "",
-        prenom: "",
-        mois: "",
-        annee: new Date().getFullYear(),
-        salaire_base: "",
-        taux_horaire: "",
-        heures: "",
-        nbr_enfant: "",
-        allocation_conge: "",
-        preavis: "",
-        prime: "",
-        fm: "",
-        hs_exo_irsa: "",
-        hs_imposable: "",
-        majoration: "",
-        salaire_brut_total: "",
-        salaire_brut_imposable: "",
-        cnaps: "",
-        ostie: "",
-        nb_enf: "",
-        irsa: "",
-        avance15: "",
-        avance_speciale: "",
-        autre: "",
-        cantine: "",
-        reglement: "",
-        salaire_net: "",
-        date_paiement: "",
-        mode_paiement: "",
-        nb_conge: "0",
-      });
-      setShowForm(false);
-    } catch (err) {
-      console.error(err);
-      alert("Erreur lors de l'enregistrement de la fiche");
-    }
-  };
+      setNewFiche({
+        matricule: "",
+        classe: "",
+        nom: "",
+        prenom: "",
+        mois: "",
+        annee: new Date().getFullYear(),
+        salaire_base: "",
+        taux_horaire: "",
+        heures: "",
+        nbr_enfant: "",
+        allocation_conge: "",
+        preavis: "",
+        prime: "",
+        fm: "",
+        hs_exo_irsa: "",
+        hs_imposable: "",
+        majoration: "",
+        salaire_brut_total: "",
+        salaire_brut_imposable: "",
+        cnaps: "",
+        ostie: "",
+        nb_enf: "",
+        irsa: "",
+        avance15: "",
+        avance_speciale: "",
+        autre: "",
+        cantine: "",
+        reglement: "",
+        salaire_net: "",
+        date_paiement: "",
+        mode_paiement: "",
+        nb_conge: "0",
+      });
+      setShowForm(false);
+    } catch (err) {
+      console.error(err);
+      alert("Erreur lors de l'enregistrement de la fiche"); // ⚠️ Utiliser un modal personnalisé au lieu d'alert
+    }
+  };
 
-  useEffect(() => {
-    axios
-      .get("http://localhost:5000/fiches")
-      .then((res) => {
-        const fichesParPersonne = {};
-        res.data.forEach((fiche) => {
-          const key = fiche.nom + " " + fiche.prenom;
-          if (!fichesParPersonne[key]) {
-            fichesParPersonne[key] = { ...fiche, moisData: {} };
-          }
-          fichesParPersonne[key].moisData[fiche.mois] = fiche;
-        });
-        setFiches(Object.values(fichesParPersonne));
-      })
-      .catch((err) => console.error(err));
+  useEffect(() => {
+    // 🛑 URL MISE À JOUR (GET)
+    axios
+      .get(`${RENDER_API_BASE_URL}/fiches`)
+      .then((res) => {
+        const fichesParPersonne = {};
+        res.data.forEach((fiche) => {
+          const key = fiche.nom + " " + fiche.prenom;
+          if (!fichesParPersonne[key]) {
+            fichesParPersonne[key] = { ...fiche, moisData: {} };
+          }
+          fichesParPersonne[key].moisData[fiche.mois] = fiche;
+        });
+        setFiches(Object.values(fichesParPersonne));
+      })
+      .catch((err) => console.error(err));
 
-   
-  }, []);
+   
+  }, []);
 
-  const supprimerFiche = (fiche) => {
-    if (window.confirm("Voulez-vous vraiment supprimer cette fiche ?")) {
-      axios
-        .delete(`http://localhost:5000/fiches/${fiche.id}`)
-        .then(() => {
-          setFiches((prev) =>
-            prev
-              .map((f) => {
-                if (f.matricule === fiche.matricule) {
-                  const updated = { ...f };
-                  delete updated.moisData[fiche.mois];
-                  return updated;
-                }
-                return f;
-              })
-              .filter((f) => Object.keys(f.moisData).length > 0)
-          );
-        })
-        .catch((err) => console.error(err));
-    }
-  };
+  const supprimerFiche = (fiche) => {
+    // ⚠️ Attention : window.confirm bloque l'iFrame, à remplacer par un modal
+    if (window.confirm("Voulez-vous vraiment supprimer cette fiche ?")) { 
+      // 🛑 URL MISE À JOUR (DELETE)
+      axios
+        .delete(`${RENDER_API_BASE_URL}/fiches/${fiche.id}`)
+        .then(() => {
+          setFiches((prev) =>
+            prev
+              .map((f) => {
+                if (f.matricule === fiche.matricule) {
+                  const updated = { ...f };
+                  delete updated.moisData[fiche.mois];
+                  return updated;
+                }
+                return f;
+              })
+              .filter((f) => Object.keys(f.moisData).length > 0)
+          );
+        })
+        .catch((err) => console.error(err));
+    }
+  };
 
-  const modifierFiche = (fiche) => {
-     setFicheEnCours(fiche);
+  const modifierFiche = (fiche) => {
+     setFicheEnCours(fiche);
 
-    // ⬅️ CORRECTION 3: EXTRAIRE L'ANNÉE À PARTIR DE LA DATE DE PAIEMENT
-     const anneeDeFiche = fiche.date_paiement 
-      ? fiche.date_paiement.substring(0, 4) 
-      : new Date().getFullYear().toString();
+    // ⬅️ CORRECTION 3: EXTRAIRE L'ANNÉE À PARTIR DE LA DATE DE PAIEMENT
+     const anneeDeFiche = fiche.date_paiement 
+      ? fiche.date_paiement.substring(0, 4) 
+      : new Date().getFullYear().toString();
 
-    // ⬅️ CORRECTION 4: CHARGER TOUS LES CHAMPS DANS NEWFICHE
-     setNewFiche({
-       ...fiche,
-      annee: anneeDeFiche, // Charge l'année pour le champ du formulaire
-       nb_conge: fiche.nb_conge || "0", // Assure qu'il y a toujours une valeur par défaut
-    });
-     setShowForm(true);
+    // ⬅️ CORRECTION 4: CHARGER TOUS LES CHAMPS DANS NEWFICHE
+     setNewFiche({
+       ...fiche,
+      annee: anneeDeFiche, // Charge l'année pour le champ du formulaire
+       nb_conge: fiche.nb_conge || "0", // Assure qu'il y a toujours une valeur par défaut
+    });
+     setShowForm(true);
 };
 
 // Function to generate PDF of a fiche
 const exporterPDF = async (fiche) => {
-  try {
-    const response = await axios.get(`http://localhost:5000/api/export-pdf/${fiche.id}`, {
-      responseType: 'blob', // Important pour gérer un fichier binaire
-    });
+  try {
+    // 🛑 URL MISE À JOUR (GET PDF)
+    const response = await axios.get(`${RENDER_API_BASE_URL}/api/export-pdf/${fiche.id}`, {
+      responseType: 'blob', // Important pour gérer un fichier binaire
+    });
 
-    // Crée un lien pour télécharger le fichier
-    const url = window.URL.createObjectURL(new Blob([response.data]));
-    const link = document.createElement('a');
-    link.href = url;
-    link.setAttribute('download', `fiche_paie_${fiche.matricule}_${fiche.mois}.pdf`);
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-  } catch (error) {
-    console.error("Erreur lors de l'exportation du PDF", error);
-    alert("Une erreur est survenue lors de l'exportation du PDF.");
-  }
+    // Crée un lien pour télécharger le fichier
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `fiche_paie_${fiche.matricule}_${fiche.mois}.pdf`);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+  } catch (error) {
+    console.error("Erreur lors de l'exportation du PDF", error);
+    alert("Une erreur est survenue lors de l'exportation du PDF."); // ⚠️ Utiliser un modal personnalisé au lieu d'alert
+  }
 };
 
 //ZONE DE RECHERCHE
- // Filtrer les fiches selon la recherche
-  const fichesFiltrees = fiches.filter((fiche) =>
-    [fiche.matricule, fiche.nom, fiche.prenom, fiche.classe]
-      .join(" ")
-      .toLowerCase()
-      .includes(search.toLowerCase())
-  );
+ // Filtrer les fiches selon la recherche
+  const fichesFiltrees = fiches.filter((fiche) =>
+    [fiche.matricule, fiche.nom, fiche.prenom, fiche.classe]
+      .join(" ")
+      .toLowerCase()
+      .includes(search.toLowerCase())
+  );
 
-  // Fonction pour convertir le numéro du mois en nom de mois en français
+  // Fonction pour convertir le numéro du mois en nom de mois en français
 const getMonthName = (monthNumber) => {
-  const months = {
-    "01": "Janvier",
-    "02": "Février",
-    "03": "Mars",
-    "04": "Avril",
-    "05": "Mai",
-    "06": "Juin",
-    "07": "Juillet",
-    "08": "Août",
-    "09": "Septembre",
-    "10": "Octobre",
-    "11": "Novembre",
-    "12": "Décembre",
-  };
-  return months[monthNumber] || monthNumber; // Retourne le nom, ou le numéro si non trouvé
+  const months = {
+    "01": "Janvier",
+    "02": "Février",
+    "03": "Mars",
+    "04": "Avril",
+    "05": "Mai",
+    "06": "Juin",
+    "07": "Juillet",
+    "08": "Août",
+    "09": "Septembre",
+    "10": "Octobre",
+    "11": "Novembre",
+    "12": "Décembre",
+  };
+  return months[monthNumber] || monthNumber; // Retourne le nom, ou le numéro si non trouvé
 };
-/*
-// Fonction utilitaire pour trouver la dernière fiche pour un matricule donné
-    const getLatestFicheData = (targetMatricule) => {
-        let latestFiche = null;
-        let latestTimestamp = 0;
-
-        // Parcourir toutes les données du personnel dans l'état 'fiches'
-        const personnel = fiches.find(p => p.matricule === targetMatricule);
-
-        if (!personnel || !personnel.moisData) return null;
-
-        // Parcourir tous les mois de fiches pour ce personnel
-        for (const mois in personnel.moisData) {
-            const currentFiche = personnel.moisData[mois];
-
-            // Utiliser date_paiement pour déterminer la date la plus récente
-            if (currentFiche.date_paiement) {
-                const currentTimestamp = new Date(currentFiche.date_paiement).getTime();
-                
-                if (currentTimestamp > latestTimestamp) {
-                    latestTimestamp = currentTimestamp;
-                    latestFiche = currentFiche;
-                }
-            }
-        }
-
-        return latestFiche;
-    };
-
-// 🌟 🌟 Logique d'Autocomplétion lors de la saisie du matricule 🌟 🌟
-    useEffect(() => {
-        const matricule = newFiche.matricule;
-
-        // ⚠️ Déclencher l'autocomplétion SEULEMENT en mode "Ajout" (ficheEnCours est null)
-        if (matricule && !ficheEnCours) {
-            
-            // 1. Récupérer la dernière fiche
-            const latestFiche = getLatestFicheData(matricule);
-            
-            if (latestFiche) {
-                setNewFiche(prev => ({
-                    ...prev,
-                    
-                    // --- Champs d'identité (issus de la dernière fiche) ---
-                    classe: latestFiche.classe || prev.classe,
-                    nom: latestFiche.nom || prev.nom,
-                    prenom: latestFiche.prenom || prev.prenom,
-                    poste: latestFiche.poste || prev.poste,
-                    cnaps_num: latestFiche.cnaps_num || prev.cnaps_num,
-
-                    // --- Champs Financiers/Base (à copier) ---
-                    salaire_base: latestFiche.salaire_base || prev.salaire_base,
-                    taux_horaire: latestFiche.taux_horaire || prev.taux_horaire,
-                    heures: latestFiche.heures || prev.heures,
-                    nbr_enfant: latestFiche.nbr_enfant || prev.nbr_enfant,
-                    nb_enf: latestFiche.nb_enf || prev.nb_enf, // Nombre enfants pour déduction
-                    
-                    // --- Primes/Avances/Congés (à copier) ---
-                    prime: latestFiche.prime || "0",
-                    fm: latestFiche.fm || "0",
-                    majoration: latestFiche.majoration || "0",
-                    avance15: latestFiche.avance15 || "0",
-                    avance_speciale: latestFiche.avance_speciale || "0",
-                    cantine: latestFiche.cantine || "0",
-                    autre: latestFiche.autre || "0",
-                    
-                    // ⬅️ NB CONGÉ EST COPIÉ AUTOMATIQUEMENT
-                    nb_conge: latestFiche.nb_conge || "0", 
-
-                    // Les champs mois, annee, date_paiement, mode_paiement, sont laissés tels quels pour la nouvelle fiche
-                }));
-            }
-        }
-    }, [newFiche.matricule, ficheEnCours, fiches]); // Dépendances
-
-*/
   return (
     <div className="bg-white p-6 rounded-lg shadow">
       <div className="flex justify-between items-center mb-4">
