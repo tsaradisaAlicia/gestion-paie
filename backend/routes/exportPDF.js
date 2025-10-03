@@ -7,21 +7,6 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Fonction pour convertir le numéro du mois en nom français
-const convertirMoisEnTexte = (numeroMois) => {
-    const mois = [
-        "Janvier", "Février", "Mars", "Avril", "Mai", "Juin",
-        "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"
-    ];
-    // S'assure que le numéro est valide (entre 1 et 12) et retourne le nom correspondant.
-    // Les mois en JavaScript commencent à 0, donc on soustrait 1.
-    const index = parseInt(numeroMois, 10) - 1;
-    if (index >= 0 && index < 12) {
-        return mois[index];
-    }
-    return numeroMois; // Retourne le numéro si la conversion échoue
-};
-
 // Fonction pour formater un nombre avec un espace comme séparateur de milliers et une virgule pour les décimales
 const formatNumber = (number) => {
     // S'assurer que la valeur est un nombre et non nulle
@@ -56,9 +41,6 @@ const setupPdfRoute = (db) => {
             if (!fiche) {
                 return res.status(404).json({ error: "Fiche de paie non trouvée" });
             }
-
-            // --- NOUVEAU: Conversion du mois en texte ---
-            const moisEnTexte = convertirMoisEnTexte(fiche.mois);
 
             // ---------------------------- //
             // CALCULS (Simplifiés et corrigés pour plus de clarté)
@@ -120,8 +102,7 @@ const setupPdfRoute = (db) => {
                                     },
                                     {
                                         stack: [
-                                            // --- UTILISATION DE moisEnTexte ICI ---
-                                            { text: `PAIE MOIS DE : ${moisEnTexte}`, fontSize: 10, alignment: "left" },
+                                            { text: `PAIE MOIS DE : ${fiche.mois}`, fontSize: 10, alignment: "left" },
                                             { text: `N°: ${fiche.id}`, fontSize: 10, alignment: "left" },
                                         ],
                                         border: [true, true, true, true],
@@ -143,8 +124,8 @@ const setupPdfRoute = (db) => {
                                         stack: [
                                             { text: `Matricule : ${fiche.matricule || ""}`, fontSize: 10, alignment: "left"},
                                             { text: `Nom et prénom: ${fiche.nom || ""} ${fiche.prenom || ""}`, fontSize: 10, alignment: "left" },
-                                            { text: `Fonction : ${fiche.poste || ""}         Classif: ${fiche.classe || ""}`, fontSize: 10, alignment: "left"},
-                                            { text: `N°CNaPS : ${fiche.cnaps_num || ""}           Nb enfant: ${fiche.nb_enf || "0"}`, fontSize: 10, alignment: "left"},
+                                            { text: `Fonction : ${fiche.poste || ""}             Classif: ${fiche.classe || ""}`, fontSize: 10, alignment: "left"},
+                                            { text: `N°CNaPS : ${fiche.cnaps_num || ""}                Nb enfant: ${fiche.nb_enf || "0"}`, fontSize: 10, alignment: "left"},
                                             { text: `Sal de base : ${formatNumber(salaireBase)} Ar`, fontSize: 10, alignment: "left"},
                                             { text: `Nb heures: ${fiche.heures || ""} Heures`, fontSize: 10, alignment: "left"},
                                         ],
@@ -254,7 +235,7 @@ const setupPdfRoute = (db) => {
             res.setHeader("Content-Type", "application/pdf");
             res.setHeader(
                 "Content-Disposition",
-                `attachment; filename=fiche_paie_${fiche.matricule}_${moisEnTexte}.pdf`
+                `attachment; filename=fiche_paie_${fiche.matricule}_${fiche.mois}.pdf`
             );
             pdfDoc.pipe(res);
             pdfDoc.end();
