@@ -57,6 +57,9 @@ const setupPdfRoute = (db) => {
                 return res.status(404).json({ error: "Fiche de paie non trouvée" });
             }
 
+            // --- NOUVEAU: Conversion du mois en texte ---
+            const moisEnTexte = convertirMoisEnTexte(fiche.mois);
+
             // ---------------------------- //
             // CALCULS (Simplifiés et corrigés pour plus de clarté)
             // ---------------------------- //
@@ -117,6 +120,7 @@ const setupPdfRoute = (db) => {
                                     },
                                     {
                                         stack: [
+                                            // --- UTILISATION DE moisEnTexte ICI ---
                                             { text: `PAIE MOIS DE : ${moisEnTexte}`, fontSize: 10, alignment: "left" },
                                             { text: `N°: ${fiche.id}`, fontSize: 10, alignment: "left" },
                                         ],
@@ -139,8 +143,8 @@ const setupPdfRoute = (db) => {
                                         stack: [
                                             { text: `Matricule : ${fiche.matricule || ""}`, fontSize: 10, alignment: "left"},
                                             { text: `Nom et prénom: ${fiche.nom || ""} ${fiche.prenom || ""}`, fontSize: 10, alignment: "left" },
-                                            { text: `Fonction : ${fiche.poste || ""}             Classif: ${fiche.classe || ""}`, fontSize: 10, alignment: "left"},
-                                            { text: `N°CNaPS : ${fiche.cnaps_num || ""}                Nb enfant: ${fiche.nb_enf || "0"}`, fontSize: 10, alignment: "left"},
+                                            { text: `Fonction : ${fiche.poste || ""}         Classif: ${fiche.classe || ""}`, fontSize: 10, alignment: "left"},
+                                            { text: `N°CNaPS : ${fiche.cnaps_num || ""}           Nb enfant: ${fiche.nb_enf || "0"}`, fontSize: 10, alignment: "left"},
                                             { text: `Sal de base : ${formatNumber(salaireBase)} Ar`, fontSize: 10, alignment: "left"},
                                             { text: `Nb heures: ${fiche.heures || ""} Heures`, fontSize: 10, alignment: "left"},
                                         ],
@@ -250,7 +254,7 @@ const setupPdfRoute = (db) => {
             res.setHeader("Content-Type", "application/pdf");
             res.setHeader(
                 "Content-Disposition",
-                `attachment; filename=fiche_paie_${fiche.matricule}_${fiche.mois}.pdf`
+                `attachment; filename=fiche_paie_${fiche.matricule}_${moisEnTexte}.pdf`
             );
             pdfDoc.pipe(res);
             pdfDoc.end();
