@@ -7,6 +7,21 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Fonction pour convertir le numéro du mois en nom français
+const convertirMoisEnTexte = (numeroMois) => {
+    const mois = [
+        "Janvier", "Février", "Mars", "Avril", "Mai", "Juin",
+        "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"
+    ];
+    // S'assure que le numéro est valide (entre 1 et 12) et retourne le nom correspondant.
+    // Les mois en JavaScript commencent à 0, donc on soustrait 1.
+    const index = parseInt(numeroMois, 10) - 1;
+    if (index >= 0 && index < 12) {
+        return mois[index];
+    }
+    return numeroMois; // Retourne le numéro si la conversion échoue
+};
+
 // Fonction pour formater un nombre avec un espace comme séparateur de milliers et une virgule pour les décimales
 const formatNumber = (number) => {
     // S'assurer que la valeur est un nombre et non nulle
@@ -102,7 +117,7 @@ const setupPdfRoute = (db) => {
                                     },
                                     {
                                         stack: [
-                                            { text: `PAIE MOIS DE : ${fiche.mois}`, fontSize: 10, alignment: "left" },
+                                            { text: `PAIE MOIS DE : ${moisEnTexte}`, fontSize: 10, alignment: "left" },
                                             { text: `N°: ${fiche.id}`, fontSize: 10, alignment: "left" },
                                         ],
                                         border: [true, true, true, true],
