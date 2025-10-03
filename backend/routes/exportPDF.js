@@ -157,11 +157,12 @@ const setupPdfRoute = (db) => {
                                 [{ text: "SALAIRE DE BASE", style: "totalRow" }, { text: formatNumber(salaireBase), style: "totalRow", alignment: "right" }, "", ""],
                                 ["HEURE SUPPLE EXONERE IRSA", { text: formatNumber(hsExoIrsa), alignment: "right" }, "", ""],
                                 ["HEURE SUPPLE IMPOSABLE", { text: formatNumber(hsImposable), alignment: "right" }, "", ""],
+                                ["ALLOCATION DE CONGE", { text: formatNumber(allocationConge), alignment: "right" }, "", ""],
                                 ["PRIME", { text: formatNumber(prime), alignment: "right" }, "", ""],
                                 [{ text: "TOTAL SALAIRE BRUT", style: "totalRow" }, { text: formatNumber(totalSalairesBruts), alignment: "right", style: "totalRow" }, "", ""],
                                 ["AVANCE SPECIALE", "", { text: formatNumber(avanceSpeciale), alignment: "right" }, ""],
                                 ["AVANCE 15", "", { text: formatNumber(avance15), alignment: "right" }, ""],
-                                ["ALLOCATION DE CONGE", { text: formatNumber(allocationConge), alignment: "right" }, "", ""],
+                                
                                 ["RETENUE CNaPS", "", { text: formatNumber(cnaps), alignment: "right" }, ""],
                                 ["RETENUE OSTIE", "", { text: formatNumber(ostie), alignment: "right" }, ""],
                                 ["IRSA", "", { text: formatNumber(irsa), alignment: "right" }, ""],
