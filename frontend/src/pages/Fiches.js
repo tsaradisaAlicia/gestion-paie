@@ -47,6 +47,7 @@ const calculerFiche = (data) => {
     salaire_base + prime + majoration + allocation_conge + hs_imposable + autre;
 
   // Taux de cotisation
+
   const taux_cnaps = 0.01;
   const taux_ostie = 0.01;
 
