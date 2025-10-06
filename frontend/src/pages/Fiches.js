@@ -3,6 +3,12 @@ import { useEffect, useState } from "react";
 import { FaPlus, FaEdit, FaTrash, FaDownload, FaSearch } from "react-icons/fa";
 import axios from "axios";
 
+// --- Constante du plafond salarial (CNAPS/OSTIE) ---
+// Plafond du Salaire de Base pour le calcul des cotisations sociales (Madagascar)
+const PLAFOND_SOCIAL_AR = 2101440; // 2 101 440 Ar 
+const MONTANT_COTISATION_PLAFONNEE = 21014.40; // 1% de 2 101 440 Ar
+const TAUX_COTISATION = 0.01; // Taux CNaPS et OSTIE (1%)
+
 // 💡 NOUVELLE URL DE L'API DE RENDER
 // VEUILLEZ REMPLACER CETTE ADRESSE SI VOTRE DOMAINE RENDER CHANGE !
 const RENDER_API_BASE_URL = "https://gestion-paie-b7w6.onrender.com";
@@ -46,14 +52,23 @@ const calculerFiche = (data) => {
   const salaire_brut_total =
     salaire_base + prime + majoration + allocation_conge + hs_imposable + autre;
 
-  // Taux de cotisation
+ // ----------------------------------------------------
+  // 2. LOGIQUE CNAPS et OSTIE (avec plafond sur la cotisation)
+  // ----------------------------------------------------
+  let cnaps;
+  let ostie;
 
-  const taux_cnaps = 0.01;
-  const taux_ostie = 0.01;
-
-  // Calcul des retenues
-  const cnaps = salaire_brut_total * taux_cnaps;
-  const ostie = salaire_brut_total * taux_ostie;
+  if (salaire_base >= PLAFOND_SOCIAL_AR) {
+    // Si le salaire de base dépasse le plafond (2 101 440 Ar),
+    // la cotisation est plafonnée à 21 014,40 Ar (1% du plafond).
+    cnaps = MONTANT_COTISATION_PLAFONNEE; 
+    ostie = MONTANT_COTISATION_PLAFONNEE; 
+  } else {
+    // Si le salaire de base est inférieur au plafond,
+    // la cotisation est 1% du salaire de base réel.
+    cnaps = salaire_base * TAUX_COTISATION;
+    ostie = salaire_base * TAUX_COTISATION;
+  }
 
   // Déterminer la base de calcul de l'IRSA
   const base_imposable = salaire_brut_total - cnaps - ostie - hs_exo_irsa;
