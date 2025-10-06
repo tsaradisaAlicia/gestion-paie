@@ -119,7 +119,6 @@ if (base_irsa_arrondie > 600000) {
   };
 };
 
-
 function Fiches() {
   const [fiches, setFiches] = useState([]);
   const [ficheEnCours, setFicheEnCours] = useState(null);
